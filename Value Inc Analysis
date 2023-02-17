@@ -1,0 +1,118 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.express as px
+
+data=pd.read_csv('transaction.csv')
+data=pd.read_csv('transaction.csv', sep =";")
+data.info()
+
+CostPerItem= 11.73
+SellingPricePerItem= 21.11
+NoOfItemsPurchased= 6
+
+ProfitPerItem= SellingPricePerItem - CostPerItem
+ProfitPerTransaction= ProfitPerItem * NoOfItemsPurchased
+CostPerTransaction= CostPerItem * NoOfItemsPurchased
+SellingPricePerTransaction= NoOfItemsPurchased * SellingPricePerItem
+
+CostPerItem= data['CostPerItem']
+NoOfItemsPurchased= data['NumberOfItemsPurchased']
+CostPerTransaction= CostPerTransaction= CostPerItem * NoOfItemsPurchased
+
+data['CostPerTransaction'] = CostPerTransaction
+
+SellingPricePerItem= data['SellingPricePerItem']
+NoOfItemsPurchased= data['NumberOfItemsPurchased']
+SellingPricePerTransaction= NoOfItemsPurchased * SellingPricePerItem
+
+data['SellingPricePerTransaction'] = SellingPricePerTransaction
+
+data['ProfitPerItem']= data['SellingPricePerItem']-data['CostPerItem']
+data['ProfitPerTransaction']= data['ProfitPerItem']* data['NumberOfItemsPurchased']
+
+data['Markup']= (data['SellingPricePerTransaction']- data['CostPerTransaction'])/data['CostPerTransaction']
+
+roundmu= round(data['Markup'],2)
+data['Markup']= roundmu
+
+date= data['Day'].astype(str)
+year= data['Year'].astype(str)
+print(date,year.dtype)
+
+my_date= date+'.'+data['Month']+'.'+year #concatination
+data['Date']= my_date
+
+data.iloc[0:10]
+data.iloc[2]
+data.iloc[:,2]
+
+splitcol= data['ClientKeywords'].str.split(',' , expand= True)
+data['ClientAge']=splitcol[0]
+data['ClientType']=splitcol[1]
+data['LengthOfContract']=splitcol[2]
+
+data['ClientAge']= data['ClientAge'].str.replace('[', '')
+data['LengthOfContract']=data['LengthOfContract'].str.replace(']', '')
+
+data['ItemDescription']=data['ItemDescription'].str.lower()
+
+seasons=pd.read_csv('value_inc_seasons.csv', sep =";")
+
+data= pd.merge(data, seasons, on= 'Month')
+data=data.drop('ClientKeywords', axis=1)
+data=data.drop('Day', axis=1)
+data=data.drop('Month', axis=1)
+data=data.drop('Year', axis=1)
+
+data.to_csv('Value_inc_Cleaned.csv', index= False)
+
+ClientAge_dict = dict(data.ClientAge.value_counts())
+
+fig = plt.figure(figsize=(21, 6))
+ax = fig.add_axes([0,0,1,1])
+ax.bar(x=list(ClientAge_dict.keys()), height=list(ClientAge_dict.values()))
+plt.show()
+
+Item_desc_dict = dict(data.ClientType.value_counts())
+
+fig = plt.figure()
+ax = fig.add_axes([0,0,1,1])
+ax.pie(x=list(Item_desc_dict.values()), 
+       labels=list(Item_desc_dict.keys()), 
+       autopct="%1.2f%%",
+       radius=2,
+       textprops={'fontsize': 14})
+plt.show()
+
+ax=plt.figure(figsize=(10,8)).add_axes([0,0,1,1])
+sns.set_style('white')
+sns.countplot(x='ClientType',data= data)
+for rect in ax.patches:
+    ax.text (rect.get_x() + rect.get_width() / 2,rect.get_height(),"%i"% rect.get_height()
+             ,fontsize=14 )
+
+plt.title('Which Client Type has brought the maxiumum of the items? ',fontsize=14, weight='bold')
+plt.xlabel('Client Type',fontsize=14)
+plt.ylabel('Profit Per Transaction',fontsize=14)
+plt.show()
+
+profits_by_client = data.groupby('ClientType')['ProfitPerTransaction'].mean()
+max_profit_client = profits_by_client.idxmax()
+plt.bar(profits_by_client.index, profits_by_client.values)
+plt.xlabel('Client Type')
+plt.ylabel('Mean Profit per Transaction')
+plt.title('Mean Profit per Transaction by Client Type')
+plt.axvline(x=max_profit_client, color='red', linestyle='--')
+plt.show()
+
+profits_by_country = data.groupby('Country')['ProfitPerTransaction'].mean()
+max_profit_client = profits_by_country.idxmax()
+plt.bar(profits_by_country.index, profits_by_country.values)
+plt.xlabel('Country')
+plt.xticks(rotation=90)
+plt.ylabel('Mean Profit per Transaction')
+plt.title('Mean Profit per Transaction by Country')
+plt.axvline(x=max_profit_client, color='red', linestyle='-')
+plt.show()
+print("The country with the maximum profit per transaction is:", max_profit_client)
